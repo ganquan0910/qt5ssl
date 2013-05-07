@@ -44,7 +44,6 @@ public:
 
 
 public slots:
-  void slotAcceptError(QAbstractSocket::SocketError error);
   void initTestCase_data();
   void initTestCase();
   void init();
@@ -72,11 +71,6 @@ tst_QSslServer::~tst_QSslServer()
 {
 }
 
-void tst_QSslServer::slotAcceptError(QAbstractSocket::SocketError error)
-{
-  qDebug() << "sslserver slot Accept Error:\t" << error;
-}
-
 void tst_QSslServer::ignoreHostnameAndSelfSignedErr(SslSocket *client)
 {
   QSslError selfSignedError(QSslError::SelfSignedCertificate, signedSelfCert);
@@ -100,14 +94,15 @@ void tst_QSslServer::initTestCase()
   //    QVERIFY(networkSession->waitForOpened());
   //#endif
 
-  QFile certFile("d:/server.csr");
+  QVERIFY(QSslSocket::supportsSsl());
+  QFile certFile("/home/sd44/server.csr");
   QVERIFY(certFile.open(QIODevice::ReadOnly));
   signedSelfCert = QSslCertificate (&certFile);
   QVERIFY(!signedSelfCert.isNull());
   QVERIFY(signedSelfCert.isValid());
   certFile.close();
 
-  QFile privateFile("d:/server.key");
+  QFile privateFile("/home/sd44/server.key");
   QVERIFY(privateFile.open(QIODevice::ReadOnly));
   privateKey = QSslKey(&privateFile, QSsl::Rsa);
   QVERIFY(!privateKey.isNull());
@@ -128,8 +123,6 @@ void tst_QSslServer::clientServerLoop()
   QSslServer server;
   server.setPrivateKey(privateKey);
   server.setLocalCertificate(signedSelfCert);
-  connect(&server, SIGNAL(acceptError(QAbstractSocket::SocketError)),
-          SLOT(slotAcceptError(QAbstractSocket::SocketError)));
 
   qRegisterMetaType<SslSocket *>("SslSocket*");
 
@@ -137,17 +130,16 @@ void tst_QSslServer::clientServerLoop()
 
   QVERIFY(!server.isListening());
   QVERIFY(!server.hasPendingConnections());
-  QVERIFY(server.listen(QHostAddress("127.0.0.1"), 8888));
+  QVERIFY(server.listen(QHostAddress::LocalHost, 8888));
   QVERIFY(server.isListening());
 
   SslSocket client;
   client.setObjectName("clientToServer");
-  client.setPrivateKey(privateKey);
-  client.setLocalCertificate(signedSelfCert);
   ignoreHostnameAndSelfSignedErr(&client);
   client.addCaCertificate(signedSelfCert);
 
   client.connectToHostEncrypted("localhost", 8888);
+  client.peerCertificate();
   QVERIFY(client.waitForConnected(5000));
   QVERIFY(server.waitForNewConnection(5000));
 
@@ -157,22 +149,15 @@ void tst_QSslServer::clientServerLoop()
   SslSocket *serverSocket = server.nextSslPendingConnection();
   QVERIFY(serverSocket != 0);
   serverSocket->setObjectName("serverToClient");
-  if (!serverSocket->isEncrypted()) {
-    if (!serverSocket->waitForEncrypted(5000)) {
-      QWARN(serverSocket->errorString().toLatin1());
-      qDebug() << int(serverSocket->error());
-      qDebug() << server.errorString();
-    }
-  }
+  QVERIFY(serverSocket->waitForEncrypted(2000));
   if (!client.isEncrypted())
-    qDebug()<< "client is not Encrypted" , client.waitForEncrypted(20000);
+    qDebug()<< "client is not Encrypted" , client.waitForEncrypted(2000);
 
 
   QVERIFY(serverSocket->write("Greetings, client!\n", 19) == 19);
   serverSocket->flush();
-  serverSocket->waitForBytesWritten();
 
-  QVERIFY(client.waitForReadyRead(5000));
+  QVERIFY(client.waitForReadyRead(2000));
   QByteArray arr = client.readLine();
   QCOMPARE(arr.constData(), "Greetings, client!\n");
 

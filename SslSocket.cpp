@@ -53,6 +53,7 @@ void SslSocket::slotEncryptedBytesWritten(qint64 bytes)
 void SslSocket::slotError(QAbstractSocket::SocketError error)
 {
   qDebug() << objectName() << "socket error:\t" << error;
+  qDebug() << objectName() << errorString();
 }
 
 void SslSocket::slotModeChanged(QSslSocket::SslMode mode)

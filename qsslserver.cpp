@@ -60,6 +60,7 @@ void QSslServer::incomingConnection(qintptr socketDescriptor)
 #endif
 
   SslSocket *socket = new SslSocket(this);
+  socket->setObjectName("ServerToClient In incommingConnection");
 
   socket->setPrivateKey(privateKey);
   socket->setLocalCertificate(localCertificate);

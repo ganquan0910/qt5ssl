@@ -2,6 +2,9 @@
 #define QSSLSERVER_H
 
 
+#define QTCPSERVER_DEBUG
+#define QSSLSERVER_DEBUG
+
 #include <QtNetwork/QTcpServer>
 #include <QtNetwork/qsslerror.h>
 #include <QtNetwork/qsslkey.h>
@@ -12,8 +15,6 @@ QT_BEGIN_NAMESPACE
 #ifndef QT_NO_SSL
 
 
-#define QTCPSERVER_DEBUG
-#define QSSLSERVER_DEBUG
 
 class SslSocket;
 
